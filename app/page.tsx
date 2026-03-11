@@ -5,6 +5,7 @@ import type { FeedbackItem } from "@/lib/db";
 import Board from "./components/Board";
 import SubmitModal from "./components/SubmitModal";
 import DetailModal from "./components/DetailModal";
+import ThemeToggle from "./components/ThemeToggle";
 
 const VOTED_KEY = "voted_items";
 const POLL_INTERVAL = 4000; // 4 seconds
@@ -159,6 +160,7 @@ export default function Home() {
                 </div>
               ))}
             </div>
+            <ThemeToggle />
             <a
               href="/api/feedback/export"
               download
