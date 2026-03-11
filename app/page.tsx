@@ -193,20 +193,42 @@ export default function Home() {
         </div>
       </header>
 
-      {/* ── Toolbar ── */}
+      {/* --- Toolbar --- */}
       <div className="toolbar">
         <div className="toolbar-inner">
-          <label htmlFor="sort" className="sort-label">Sort by</label>
-          <select
-            id="sort"
-            className="sort-select"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option value="votes">Most Votes</option>
-            <option value="created_at">Newest First</option>
-            <option value="updated_at">Recently Updated</option>
-          </select>
+          <div className="search-wrap">
+            <input
+              type="search"
+              className="search-input"
+              placeholder="Search feedback…"
+              onChange={handleSearchChange}
+              aria-label="Search feedback"
+            />
+          </div>
+          <div className="filter-btns" role="group" aria-label="Filter by status">
+            {(["all", "new", "in_progress", "done"] as const).map((s) => (
+              <button
+                key={s}
+                className={`filter-btn${statusFilter === s ? " active" : ""}`}
+                onClick={() => setStatusFilter(s)}
+              >
+                {s === "all" ? "All" : s === "in_progress" ? "In Progress" : s.charAt(0).toUpperCase() + s.slice(1)}
+              </button>
+            ))}
+          </div>
+          <div className="sort-wrap">
+            <label htmlFor="sort" className="sort-label">Sort by</label>
+            <select
+              id="sort"
+              className="sort-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="votes">Most Votes</option>
+              <option value="created_at">Newest First</option>
+              <option value="updated_at">Recently Updated</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -225,21 +247,35 @@ export default function Home() {
           </div>
         )}
         {!loading && !error && (
-          <Board
-            items={items}
-            votedIds={votedIds}
-            onVote={async (item) => {
-              if (votedIds.has(item.id)) return;
-              const res = await fetch(`/api/feedback/${item.id}/vote`, { method: "POST" });
-              if (res.ok) {
-                handleVoted(item.id);
-                handleUpdate(await res.json());
-              }
-            }}
-            onUpdate={handleUpdate}
-            onDelete={handleDelete}
-            onCardClick={setSelected}
-          />
+          <>
+            {visibleItems.length === 0 && items.length > 0 ? (
+              <div className="center-state">
+                <p>No feedback matches your search or filter.</p>
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => { setSearchQuery(""); setStatusFilter("all"); }}
+                >
+                  Clear filters
+                </button>
+              </div>
+            ) : (
+              <Board
+                items={visibleItems}
+                votedIds={votedIds}
+                onVote={async (item) => {
+                  if (votedIds.has(item.id)) return;
+                  const res = await fetch(`/api/feedback/${item.id}/vote`, { method: "POST" });
+                  if (res.ok) {
+                    handleVoted(item.id);
+                    handleUpdate(await res.json());
+                  }
+                }}
+                onUpdate={handleUpdate}
+                onDelete={handleDelete}
+                onCardClick={setSelected}
+              />
+            )}
+          </>
         )}
       </main>
 
