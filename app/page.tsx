@@ -39,12 +39,23 @@ export default function Home() {
   const [showSubmit, setShowSubmit] = useState(false);
   const [selected, setSelected] = useState<FeedbackItem | null>(null);
   const [votedIds, setVotedIds] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sortByRef = useRef(sortBy);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     sortByRef.current = sortBy;
   }, [sortBy]);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     setVotedIds(getVotedItems());
@@ -129,6 +140,16 @@ export default function Home() {
     setVotedIds((prev) => new Set([...prev, id]));
   }
 
+  const displayedItems = items.filter((item) => {
+    const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+    const q = debouncedSearch.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      item.title.toLowerCase().includes(q) ||
+      (item.description ?? '').toLowerCase().includes(q);
+    return matchesStatus && matchesSearch;
+  });
+
   const counts = {
     total: items.length,
     new: items.filter((i) => i.status === "new").length,
@@ -169,17 +190,69 @@ export default function Home() {
       {/* ── Toolbar ── */}
       <div className="toolbar">
         <div className="toolbar-inner">
-          <label htmlFor="sort" className="sort-label">Sort by</label>
-          <select
-            id="sort"
-            className="sort-select"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option value="votes">Most Votes</option>
-            <option value="created_at">Newest First</option>
-            <option value="updated_at">Recently Updated</option>
-          </select>
+          {/* Search */}
+          <div className="search-wrapper">
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search feedback…"
+              value={searchQuery}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSearchQuery(val);
+                if (debounceRef.current) clearTimeout(debounceRef.current);
+                debounceRef.current = setTimeout(() => setDebouncedSearch(val), 300);
+              }}
+              aria-label="Search feedback"
+            />
+            {searchQuery && (
+              <button
+                className="search-clear"
+                aria-label="Clear search"
+                onClick={() => {
+                  setSearchQuery('');
+                  setDebouncedSearch('');
+                  if (debounceRef.current) clearTimeout(debounceRef.current);
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {/* Status filter pills */}
+          <div className="filter-pills" role="group" aria-label="Filter by status">
+            {([
+              { label: 'All', value: 'all' },
+              { label: 'New', value: 'new' },
+              { label: 'In Progress', value: 'in_progress' },
+              { label: 'Done', value: 'done' },
+            ] as const).map(({ label, value }) => (
+              <button
+                key={value}
+                className={`filter-pill${statusFilter === value ? ' active' : ''}`}
+                onClick={() => setStatusFilter(value)}
+                aria-pressed={statusFilter === value}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Sort */}
+          <div className="toolbar-sort">
+            <label htmlFor="sort" className="sort-label">Sort by</label>
+            <select
+              id="sort"
+              className="sort-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="votes">Most Votes</option>
+              <option value="created_at">Newest First</option>
+              <option value="updated_at">Recently Updated</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -199,7 +272,7 @@ export default function Home() {
         )}
         {!loading && !error && (
           <Board
-            items={items}
+            items={displayedItems}
             votedIds={votedIds}
             onVote={async (item) => {
               if (votedIds.has(item.id)) return;
