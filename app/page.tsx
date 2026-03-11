@@ -159,6 +159,13 @@ export default function Home() {
                 </div>
               ))}
             </div>
+            <a
+              href="/api/feedback/export"
+              download
+              className="btn btn-ghost"
+            >
+              ↓ Export JSON
+            </a>
             <button className="btn btn-primary" onClick={() => setShowSubmit(true)}>
               + Submit Feedback
             </button>
