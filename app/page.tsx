@@ -5,6 +5,7 @@ import type { FeedbackItem } from "@/lib/db";
 import Board from "./components/Board";
 import SubmitModal from "./components/SubmitModal";
 import DetailModal from "./components/DetailModal";
+import Toast, { ToastMessage } from "./components/Toast";
 
 const VOTED_KEY = "voted_items";
 const POLL_INTERVAL = 4000; // 4 seconds
@@ -41,6 +42,11 @@ export default function Home() {
   const [votedIds, setVotedIds] = useState<Set<number>>(new Set());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sortByRef = useRef(sortBy);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const toastIdRef = useRef(0);
+  const prevItemsRef = useRef<FeedbackItem[]>([]);
+  const MAX_TOASTS = 3;
+  const TOAST_DURATION = 3500;
 
   useEffect(() => {
     sortByRef.current = sortBy;
@@ -56,7 +62,9 @@ export default function Home() {
     try {
       const res = await fetch(`/api/feedback?sort=${sortBy}&order=desc`);
       if (!res.ok) throw new Error("fetch failed");
-      setItems(await res.json());
+      const data: FeedbackItem[] = await res.json();
+      setItems(data);
+      prevItemsRef.current = data;
     } catch {
       setError("Could not load feedback. Make sure the server is running.");
     } finally {
@@ -70,11 +78,31 @@ export default function Home() {
       const res = await fetch(`/api/feedback?sort=${sortByRef.current}&order=desc`);
       if (!res.ok) return;
       const fresh: FeedbackItem[] = await res.json();
+
+      const prev = prevItemsRef.current;
+
+      if (prev.length > 0) {
+        const prevIds = new Set(prev.map((i) => i.id));
+        const newItems = fresh.filter((i) => !prevIds.has(i.id));
+        newItems.forEach((item) => {
+          addToast(`New feedback: ${item.title}`);
+        });
+
+        const prevMap = new Map(prev.map((i) => [i.id, i]));
+        fresh.forEach((item) => {
+          const old = prevMap.get(item.id);
+          if (old && item.votes > old.votes) {
+            addToast(`Someone voted on: ${item.title}`);
+          }
+        });
+      }
+
+      prevItemsRef.current = fresh;
       setItems(fresh);
     } catch {
       // silently ignore poll errors
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); }, [load]);
 
@@ -109,6 +137,19 @@ export default function Home() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [pollSilent]);
+
+  function dismissToast(id: number) {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  function addToast(message: string) {
+    const id = ++toastIdRef.current;
+    setToasts((prev) => {
+      const next = [...prev, { id, message }];
+      return next.length > MAX_TOASTS ? next.slice(next.length - MAX_TOASTS) : next;
+    });
+    setTimeout(() => dismissToast(id), TOAST_DURATION);
+  }
 
   function handleUpdate(updated: FeedbackItem) {
     setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
@@ -230,6 +271,8 @@ export default function Home() {
           onVoted={handleVoted}
         />
       )}
+      {/* --- Toasts --- */}
+      <Toast toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }
