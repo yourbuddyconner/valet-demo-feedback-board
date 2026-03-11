@@ -8,6 +8,9 @@ import DetailModal from "./components/DetailModal";
 
 const VOTED_KEY = "voted_items";
 const POLL_INTERVAL = 4000; // 4 seconds
+const SEARCH_DEBOUNCE_MS = 300;
+
+type StatusFilter = "all" | "new" | "in_progress" | "done";
 
 function getVotedItems(): Set<number> {
   if (typeof window === "undefined") return new Set();
@@ -39,12 +42,23 @@ export default function Home() {
   const [showSubmit, setShowSubmit] = useState(false);
   const [selected, setSelected] = useState<FeedbackItem | null>(null);
   const [votedIds, setVotedIds] = useState<Set<number>>(new Set());
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sortByRef = useRef(sortBy);
 
   useEffect(() => {
     sortByRef.current = sortBy;
   }, [sortBy]);
+
+  // Debounce search input → searchQuery
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQuery(searchInput);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   useEffect(() => {
     setVotedIds(getVotedItems());
@@ -129,6 +143,26 @@ export default function Home() {
     setVotedIds((prev) => new Set([...prev, id]));
   }
 
+  const filteredItems = items.filter((item) => {
+    const matchesStatus =
+      statusFilter === "all" || item.status === statusFilter;
+    if (!matchesStatus) return false;
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      item.title.toLowerCase().includes(q) ||
+      item.description.toLowerCase().includes(q)
+    );
+  });
+
+  const hasActiveFilters = searchInput !== "" || statusFilter !== "all";
+
+  function handleReset() {
+    setSearchInput("");
+    setSearchQuery("");
+    setStatusFilter("all");
+  }
+
   const counts = {
     total: items.length,
     new: items.filter((i) => i.status === "new").length,
@@ -176,6 +210,49 @@ export default function Home() {
       {/* ── Toolbar ── */}
       <div className="toolbar">
         <div className="toolbar-inner">
+          {/* Search input */}
+          <div className="search-wrap">
+            <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              id="search"
+              type="search"
+              className="search-input"
+              placeholder="Search feedback…"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              aria-label="Search feedback by title or description"
+            />
+            {searchInput && (
+              <button
+                className="search-clear icon-btn"
+                onClick={() => { setSearchInput(""); setSearchQuery(""); }}
+                title="Clear search"
+                aria-label="Clear search"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {/* Status filter buttons */}
+          <div className="filter-group" role="group" aria-label="Filter by status">
+            {(["all", "new", "in_progress", "done"] as StatusFilter[]).map((s) => (
+              <button
+                key={s}
+                className={`filter-btn${statusFilter === s ? " active" : ""}`}
+                onClick={() => setStatusFilter(s)}
+              >
+                {s === "all" ? "All" : s === "in_progress" ? "In Progress" : s === "new" ? "New" : "Done"}
+              </button>
+            ))}
+          </div>
+
+          <div className="toolbar-sep" />
+
+          {/* Sort */}
           <label htmlFor="sort" className="sort-label">Sort by</label>
           <select
             id="sort"
@@ -187,6 +264,20 @@ export default function Home() {
             <option value="created_at">Newest First</option>
             <option value="updated_at">Recently Updated</option>
           </select>
+
+          {/* Reset all filters */}
+          {hasActiveFilters && (
+            <button className="btn btn-ghost reset-btn" onClick={handleReset}>
+              Reset filters
+            </button>
+          )}
+
+          {/* Result count */}
+          {hasActiveFilters && !loading && (
+            <span className="filter-count">
+              {filteredItems.length} of {items.length}
+            </span>
+          )}
         </div>
       </div>
 
@@ -206,7 +297,8 @@ export default function Home() {
         )}
         {!loading && !error && (
           <Board
-            items={items}
+            items={filteredItems}
+            hasActiveFilters={hasActiveFilters}
             votedIds={votedIds}
             onVote={async (item) => {
               if (votedIds.has(item.id)) return;

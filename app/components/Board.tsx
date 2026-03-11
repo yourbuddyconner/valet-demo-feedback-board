@@ -5,6 +5,7 @@ import FeedbackCard from "./FeedbackCard";
 
 interface Props {
   items: FeedbackItem[];
+  hasActiveFilters: boolean;
   votedIds: Set<number>;
   onVote: (item: FeedbackItem) => void;
   onUpdate: (item: FeedbackItem) => void;
@@ -12,11 +13,15 @@ interface Props {
   onCardClick: (item: FeedbackItem) => void;
 }
 
-export default function Board({ items, votedIds, onVote, onUpdate, onDelete, onCardClick }: Props) {
+export default function Board({ items, hasActiveFilters, votedIds, onVote, onUpdate, onDelete, onCardClick }: Props) {
   if (items.length === 0) {
     return (
       <div className="center-state">
-        <p>No feedback yet. Be the first to submit!</p>
+        {hasActiveFilters ? (
+          <p>No feedback matches your search or filters.</p>
+        ) : (
+          <p>No feedback yet. Be the first to submit!</p>
+        )}
       </div>
     );
   }
