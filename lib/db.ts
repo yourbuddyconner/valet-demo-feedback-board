@@ -50,74 +50,74 @@ function seed(db: Database.Database) {
 
   const items = [
     {
-      title: "Dark mode support",
-      description:
-        "It would be great to have a dark mode option for the app. Many users prefer working in dark environments, especially at night. This should respect the system preference by default but also allow manual override.",
-      status: "in_progress",
-      votes: 47,
-      author_name: "Sarah Chen",
-      offset: "-10 days",
-    },
-    {
       title: "Export feedback to CSV",
       description:
-        "Allow admins to export all feedback items to a CSV file for reporting and analysis purposes. Should include all fields and support filtering by status.",
+        "Allow admins to export all feedback items to a CSV file for reporting and analysis. Should include all fields (title, description, author, votes, status, date) and support filtering by status before exporting.",
       status: "new",
-      votes: 32,
+      votes: 52,
       author_name: "Marcus Johnson",
       offset: "-8 days",
     },
     {
-      title: "Email notifications for status changes",
+      title: "Mobile-friendly layout",
       description:
-        "Send an email notification to the feedback author when the status of their item changes. This keeps submitters in the loop without them needing to check back manually.",
-      status: "new",
-      votes: 28,
-      author_name: "Priya Patel",
-      offset: "-7 days",
-    },
-    {
-      title: "Add tags and categories to feedback",
-      description:
-        "It would be helpful to tag feedback items with categories like UI, Performance, Bug, Feature Request, etc. This would make filtering and prioritization much easier for the team.",
-      status: "new",
-      votes: 19,
-      author_name: "Tom Williams",
-      offset: "-5 days",
-    },
-    {
-      title: "Keyboard shortcuts",
-      description:
-        "Add keyboard shortcuts for common actions like submitting feedback, voting, and navigating between items. Power users will love this and it improves accessibility.",
-      status: "done",
-      votes: 15,
-      author_name: "Emma Davis",
-      offset: "-14 days",
-    },
-    {
-      title: "Mobile app",
-      description:
-        "A dedicated mobile app for iOS and Android would make it much easier to submit and track feedback on the go. Even a well-optimized PWA would be a great start.",
+        "The board is hard to use on small screens. A responsive layout optimized for mobile would help users submit and vote on feedback from their phones without pinching and zooming.",
       status: "new",
       votes: 41,
       author_name: "Alex Rodriguez",
       offset: "-3 days",
     },
     {
-      title: "Merge duplicate feedback items",
+      title: "Email notifications for status changes",
       description:
-        "Admins should be able to merge duplicate feedback items and combine their vote counts. This keeps the board clean and prevents fragmented voting on the same idea.",
-      status: "in_progress",
+        "Send an email notification to the feedback author when the status of their item changes. This keeps submitters in the loop without needing to check back manually every day.",
+      status: "new",
+      votes: 38,
+      author_name: "Priya Patel",
+      offset: "-7 days",
+    },
+    {
+      title: "Dark mode support",
+      description:
+        "Add a dark mode option for the app. Should respect the system-level preference by default but also allow manual override via a toggle in the header. Many users work in low-light environments.",
+      status: "new",
+      votes: 34,
+      author_name: "Sarah Chen",
+      offset: "-10 days",
+    },
+    {
+      title: "Filter feedback by status",
+      description:
+        "Add filter buttons or tabs to show only New, In Progress, or Done items. Right now all items are shown in a single list and there is no way to focus on a subset without scrolling through everything.",
+      status: "new",
+      votes: 27,
+      author_name: "Tom Williams",
+      offset: "-5 days",
+    },
+    {
+      title: "Add tags and categories to feedback",
+      description:
+        "Allow tagging feedback with categories like UI, Performance, Bug, or Feature Request. Tags would make it easier to filter, group, and prioritize items — especially as the board grows.",
+      status: "new",
       votes: 23,
       author_name: "Jordan Kim",
       offset: "-6 days",
     },
     {
-      title: "Public roadmap view",
+      title: "Public shareable links to individual feedback items",
       description:
-        "Create a public-facing roadmap view so users can see what features are planned and in progress without logging in. Transparency builds trust and reduces repeat submissions.",
-      status: "done",
-      votes: 56,
+        "Each feedback item should have its own URL so it can be linked directly from Slack, email, or external docs. Right now everything lives on a single page and deep-linking is not possible.",
+      status: "new",
+      votes: 19,
+      author_name: "Emma Davis",
+      offset: "-14 days",
+    },
+    {
+      title: "Admin comment / response on feedback",
+      description:
+        "Let admins leave a public comment or response on a feedback item so users know it has been acknowledged. A simple text field below the description would be enough to start.",
+      status: "new",
+      votes: 15,
       author_name: "Rachel Thompson",
       offset: "-20 days",
     },

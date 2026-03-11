@@ -83,71 +83,83 @@ input,textarea,select { font-family: inherit; font-size: inherit; }
 .sort-select:focus { border-color: var(--primary); }
 
 /* Main */
-.main { flex: 1; padding: 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
+.main { flex: 1; padding: 24px; max-width: 1400px; margin: 0 auto; width: 100%; box-sizing: border-box; }
 
 /* ============================================================
-   Board
+   Feedback List (flat list view)
    ============================================================ */
-.board {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  align-items: start;
+.feedback-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
 }
 
-.column {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  box-shadow: var(--sh-sm);
-  overflow: hidden;
-}
-
-.column-header {
-  display: flex; align-items: center; gap: 8px;
-  padding: 12px 16px; border-bottom: 1px solid var(--border);
-  background: var(--surface-2);
-}
-.col-icon  { font-size: 1rem; }
-.col-title {
-  flex: 1; font-size: .8rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .06em; color: var(--text);
-}
-.col-count {
-  background: var(--primary-lt); color: var(--primary);
-  font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 20px;
-}
-
-.column-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; min-height: 80px; }
-.column-empty { text-align: center; color: var(--text-muted); font-size: .85rem; padding: 20px 0; }
-
-/* ============================================================
-   Card
-   ============================================================ */
-.card {
+.list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  padding: 14px;
+  padding: 18px 16px;
   cursor: pointer;
-  transition: box-shadow .15s, transform .15s, border-color .15s;
+  transition: box-shadow .15s, border-color .15s;
+  position: relative;
 }
-.card:hover {
+.list-item:hover {
   box-shadow: var(--sh-md);
-  transform: translateY(-1px);
   border-color: var(--primary);
 }
 
-.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.card-title  { font-size: .93rem; font-weight: 600; margin-bottom: 6px; line-height: 1.4; }
-.card-preview { font-size: .82rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 12px; }
-
-.card-footer {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 8px; flex-wrap: wrap;
+.list-item-body {
+  flex: 1;
+  min-width: 0;
 }
-.card-author  { font-size: .75rem; color: var(--text-muted); }
-.card-actions { display: flex; align-items: center; gap: 6px; }
+
+.list-item-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.list-item-title {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+  flex: 1;
+  min-width: 0;
+}
+
+.list-item-preview {
+  font-size: .875rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin-bottom: 10px;
+}
+
+.list-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.list-item-author {
+  font-size: .78rem;
+  color: var(--text-muted);
+}
+
+.list-item-delete {
+  opacity: 0;
+  transition: opacity .15s;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+.list-item:hover .list-item-delete { opacity: 1; }
 
 /* ============================================================
    Status Badges
@@ -162,24 +174,73 @@ input,textarea,select { font-family: inherit; font-size: inherit; }
 .status-done        { background: var(--s-done-bg); color: var(--s-done-c); border: 1px solid var(--s-done-b); }
 
 /* ============================================================
-   Vote Button
+   Vote Button — list-view variant
    ============================================================ */
+.vote-btn-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex-shrink: 0;
+  width: 54px;
+  min-height: 58px;
+  padding: 8px 6px;
+  background: var(--primary-lt);
+  color: var(--primary);
+  border: 1px solid #c7d2fe;
+  border-radius: var(--r-md);
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s, transform .1s;
+}
+.vote-btn-list:hover:not(:disabled) {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.vote-btn-list:active:not(:disabled) { transform: scale(.95); }
+.vote-btn-list.voted {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  cursor: default;
+  opacity: .85;
+}
+.vote-btn-list:disabled { cursor: not-allowed; }
+
+.vote-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.vote-count {
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* ── Detail modal vote button ── */
 .vote-btn {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 4px 10px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px;
   background: var(--primary-lt); color: var(--primary);
-  border: 1px solid #c7d2fe; border-radius: var(--r-sm);
-  font-size: .8rem; font-weight: 600;
+  border: 1px solid #c7d2fe; border-radius: var(--r-md);
+  font-size: .9rem; font-weight: 600;
   transition: background .15s, color .15s, transform .1s;
+  cursor: pointer;
 }
 .vote-btn:hover:not(:disabled) { background: var(--primary); color: #fff; border-color: var(--primary); }
 .vote-btn:active:not(:disabled) { transform: scale(.95); }
-.vote-btn:disabled { opacity: .6; cursor: not-allowed; }
+.vote-btn:disabled { cursor: not-allowed; }
 .vote-btn.voting { opacity: .7; }
-.vote-arrow { font-size: .68rem; }
-.vote-count { font-variant-numeric: tabular-nums; }
-
-.vote-btn-lg { padding: 8px 16px; font-size: .9rem; border-radius: var(--r-md); }
+.vote-btn.voted-state {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  opacity: .85;
+}
 
 /* Status select inline */
 .status-select {
@@ -316,7 +377,6 @@ input,textarea,select { font-family: inherit; font-size: inherit; }
    Responsive
    ============================================================ */
 @media (max-width: 900px) {
-  .board { grid-template-columns: 1fr; }
   .stats { display: none; }
 }
 @media (max-width: 600px) {
@@ -326,4 +386,6 @@ input,textarea,select { font-family: inherit; font-size: inherit; }
   .detail-actions { flex-direction: column; align-items: stretch; }
   .detail-secondary { justify-content: stretch; }
   .detail-secondary .btn { flex: 1; }
+  .list-item { padding: 14px 12px; gap: 12px; }
+  .vote-btn-list { width: 46px; min-height: 50px; }
 }

@@ -6,6 +6,30 @@ import Board from "./components/Board";
 import SubmitModal from "./components/SubmitModal";
 import DetailModal from "./components/DetailModal";
 
+const VOTED_KEY = "voted_items";
+
+function getVotedItems(): Set<number> {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = localStorage.getItem(VOTED_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw) as number[]);
+  } catch {
+    return new Set();
+  }
+}
+
+function addVotedItem(id: number) {
+  if (typeof window === "undefined") return;
+  try {
+    const current = getVotedItems();
+    current.add(id);
+    localStorage.setItem(VOTED_KEY, JSON.stringify([...current]));
+  } catch {
+    // ignore
+  }
+}
+
 export default function Home() {
   const [items, setItems] = useState<FeedbackItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -13,6 +37,11 @@ export default function Home() {
   const [sortBy, setSortBy] = useState("votes");
   const [showSubmit, setShowSubmit] = useState(false);
   const [selected, setSelected] = useState<FeedbackItem | null>(null);
+  const [votedIds, setVotedIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    setVotedIds(getVotedItems());
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -42,6 +71,11 @@ export default function Home() {
 
   function handleCreated(item: FeedbackItem) {
     setItems((prev) => [item, ...prev]);
+  }
+
+  function handleVoted(id: number) {
+    addVotedItem(id);
+    setVotedIds((prev) => new Set([...prev, id]));
   }
 
   const counts = {
@@ -115,6 +149,15 @@ export default function Home() {
         {!loading && !error && (
           <Board
             items={items}
+            votedIds={votedIds}
+            onVote={async (item) => {
+              if (votedIds.has(item.id)) return;
+              const res = await fetch(`/api/feedback/${item.id}/vote`, { method: "POST" });
+              if (res.ok) {
+                handleVoted(item.id);
+                handleUpdate(await res.json());
+              }
+            }}
             onUpdate={handleUpdate}
             onDelete={handleDelete}
             onCardClick={setSelected}
@@ -129,9 +172,11 @@ export default function Home() {
       {selected && (
         <DetailModal
           item={selected}
+          voted={votedIds.has(selected.id)}
           onUpdate={handleUpdate}
           onDelete={handleDelete}
           onClose={() => setSelected(null)}
+          onVoted={handleVoted}
         />
       )}
     </div>

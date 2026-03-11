@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import type { FeedbackItem } from "@/lib/db";
 
 interface Props {
   item: FeedbackItem;
-  onUpdate: (item: FeedbackItem) => void;
+  voted: boolean;
+  onVote: (item: FeedbackItem) => void;
   onDelete: (id: number) => void;
   onClick: (item: FeedbackItem) => void;
 }
@@ -16,38 +16,11 @@ const STATUS_LABELS: Record<string, string> = {
   done: "Done",
 };
 
-export default function FeedbackCard({ item, onUpdate, onDelete, onClick }: Props) {
-  const [voting, setVoting] = useState(false);
-  const [changingStatus, setChangingStatus] = useState(false);
-
-  async function handleVote(e: React.MouseEvent) {
-    e.stopPropagation();
-    if (voting) return;
-    setVoting(true);
-    try {
-      const res = await fetch(`/api/feedback/${item.id}/vote`, { method: "POST" });
-      if (res.ok) onUpdate(await res.json());
-    } finally {
-      setVoting(false);
-    }
-  }
-
-  async function handleStatusChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    e.stopPropagation();
-    const newStatus = e.target.value;
-    if (newStatus === item.status || changingStatus) return;
-    setChangingStatus(true);
-    try {
-      const res = await fetch(`/api/feedback/${item.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (res.ok) onUpdate(await res.json());
-    } finally {
-      setChangingStatus(false);
-    }
-  }
+export default function FeedbackCard({ item, voted, onVote, onDelete, onClick }: Props) {
+  const preview =
+    item.description.length > 140
+      ? item.description.slice(0, 140) + "…"
+      : item.description;
 
   async function handleDelete(e: React.MouseEvent) {
     e.stopPropagation();
@@ -56,50 +29,54 @@ export default function FeedbackCard({ item, onUpdate, onDelete, onClick }: Prop
     if (res.ok) onDelete(item.id);
   }
 
-  const preview =
-    item.description.length > 110
-      ? item.description.slice(0, 110) + "…"
-      : item.description;
-
   return (
-    <div className="card" onClick={() => onClick(item)}>
-      <div className="card-header">
-        <span className={`status-badge status-${item.status.replace("_", "-")}`}>
-          {STATUS_LABELS[item.status]}
-        </span>
-        <button className="icon-btn danger-hover" onClick={handleDelete} title="Delete">
-          ×
-        </button>
-      </div>
+    <div className="list-item" onClick={() => onClick(item)}>
+      {/* Vote button */}
+      <button
+        className={`vote-btn-list${voted ? " voted" : ""}`}
+        onClick={(e) => { e.stopPropagation(); onVote(item); }}
+        disabled={voted}
+        title={voted ? "Already voted" : "Upvote"}
+        aria-label={voted ? "Already voted" : "Upvote"}
+      >
+        <svg
+          className="vote-icon"
+          viewBox="0 0 24 24"
+          fill={voted ? "currentColor" : "none"}
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M12 19V5M5 12l7-7 7 7" />
+        </svg>
+        <span className="vote-count">{item.votes}</span>
+      </button>
 
-      <h3 className="card-title">{item.title}</h3>
-      <p className="card-preview">{preview}</p>
-
-      <div className="card-footer">
-        <span className="card-author">by {item.author_name}</span>
-        <div className="card-actions">
-          <select
-            className="status-select"
-            value={item.status}
-            onChange={handleStatusChange}
-            onClick={(e) => e.stopPropagation()}
-            disabled={changingStatus}
-          >
-            <option value="new">New</option>
-            <option value="in_progress">In Progress</option>
-            <option value="done">Done</option>
-          </select>
-          <button
-            className={`vote-btn${voting ? " voting" : ""}`}
-            onClick={handleVote}
-            disabled={voting}
-            title="Upvote"
-          >
-            <span className="vote-arrow">▲</span>
-            <span className="vote-count">{item.votes}</span>
-          </button>
+      {/* Content */}
+      <div className="list-item-body">
+        <div className="list-item-header">
+          <h3 className="list-item-title">{item.title}</h3>
+          <span className={`status-badge status-${item.status.replace("_", "-")}`}>
+            {STATUS_LABELS[item.status]}
+          </span>
+        </div>
+        <p className="list-item-preview">{preview}</p>
+        <div className="list-item-meta">
+          <span className="list-item-author">by {item.author_name}</span>
         </div>
       </div>
+
+      {/* Delete */}
+      <button
+        className="icon-btn danger-hover list-item-delete"
+        onClick={handleDelete}
+        title="Delete"
+        aria-label="Delete"
+      >
+        ×
+      </button>
     </div>
   );
 }

@@ -5,9 +5,11 @@ import type { FeedbackItem } from "@/lib/db";
 
 interface Props {
   item: FeedbackItem;
+  voted: boolean;
   onUpdate: (item: FeedbackItem) => void;
   onDelete: (id: number) => void;
   onClose: () => void;
+  onVoted: (id: number) => void;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -16,7 +18,7 @@ const STATUS_LABELS: Record<string, string> = {
   done: "Done",
 };
 
-export default function DetailModal({ item, onUpdate, onDelete, onClose }: Props) {
+export default function DetailModal({ item, voted, onUpdate, onDelete, onClose, onVoted }: Props) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [voting, setVoting] = useState(false);
@@ -26,11 +28,14 @@ export default function DetailModal({ item, onUpdate, onDelete, onClose }: Props
   const [error, setError] = useState("");
 
   async function handleVote() {
-    if (voting) return;
+    if (voting || voted) return;
     setVoting(true);
     try {
       const res = await fetch(`/api/feedback/${item.id}/vote`, { method: "POST" });
-      if (res.ok) onUpdate(await res.json());
+      if (res.ok) {
+        onVoted(item.id);
+        onUpdate(await res.json());
+      }
     } finally {
       setVoting(false);
     }
@@ -118,12 +123,24 @@ export default function DetailModal({ item, onUpdate, onDelete, onClose }: Props
             <p className="detail-body">{item.description}</p>
             <div className="detail-actions">
               <button
-                className={`vote-btn vote-btn-lg${voting ? " voting" : ""}`}
+                className={`vote-btn vote-btn-lg${voting ? " voting" : ""}${voted ? " voted-state" : ""}`}
                 onClick={handleVote}
-                disabled={voting}
+                disabled={voting || voted}
+                title={voted ? "Already voted" : "Upvote"}
               >
-                <span className="vote-arrow">▲</span>
-                <span>{item.votes} votes</span>
+                <svg
+                  style={{ width: "14px", height: "14px", display: "inline" }}
+                  viewBox="0 0 24 24"
+                  fill={voted ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 19V5M5 12l7-7 7 7" />
+                </svg>
+                <span>{item.votes} votes{voted ? " · Voted" : ""}</span>
               </button>
               <div className="detail-secondary">
                 <button className="btn btn-ghost" onClick={() => setEditing(true)}>Edit</button>
