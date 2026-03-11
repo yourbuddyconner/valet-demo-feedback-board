@@ -72,7 +72,7 @@ input,textarea,select { font-family: inherit; font-size: inherit; }
 .toolbar { background: var(--surface); border-bottom: 1px solid var(--border); }
 .toolbar-inner {
   max-width: 1400px; margin: 0 auto; padding: 8px 24px;
-  display: flex; align-items: center; gap: 10px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
 }
 .sort-label  { font-size: .85rem; color: var(--text-muted); font-weight: 500; }
 .sort-select {
@@ -81,6 +81,49 @@ input,textarea,select { font-family: inherit; font-size: inherit; }
   outline: none; cursor: pointer; transition: border-color .15s;
 }
 .sort-select:focus { border-color: var(--primary); }
+
+/* Search input */
+.search-wrap { flex: 1; min-width: 180px; max-width: 320px; }
+.search-input {
+  width: 100%;
+  padding: 5px 10px 5px 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23718096' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center;
+  color: var(--text);
+  font-size: .85rem;
+  outline: none;
+  transition: border-color .15s;
+}
+.search-input:focus { border-color: var(--primary); }
+.search-input::-webkit-search-cancel-button { cursor: pointer; }
+
+/* Status filter buttons */
+.filter-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+.filter-btn {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: .8rem; font-weight: 500;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.filter-btn:hover:not(.active) {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.filter-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  font-weight: 600;
+}
+
+/* Sort wrapper */
+.sort-wrap { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 
 /* Main */
 .main { flex: 1; padding: 24px; max-width: 1400px; margin: 0 auto; width: 100%; box-sizing: border-box; }
