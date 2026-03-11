@@ -5,9 +5,16 @@ import type { FeedbackItem } from "@/lib/db";
 import Board from "./components/Board";
 import SubmitModal from "./components/SubmitModal";
 import DetailModal from "./components/DetailModal";
+import ToastContainer from "./components/Toast";
 
 const VOTED_KEY = "voted_items";
 const POLL_INTERVAL = 4000; // 4 seconds
+
+export interface Toast {
+  id: number;
+  message: string;
+  removing?: boolean; // true during exit animation
+}
 
 function getVotedItems(): Set<number> {
   if (typeof window === "undefined") return new Set();
@@ -39,8 +46,13 @@ export default function Home() {
   const [showSubmit, setShowSubmit] = useState(false);
   const [selected, setSelected] = useState<FeedbackItem | null>(null);
   const [votedIds, setVotedIds] = useState<Set<number>>(new Set());
+  const [toasts, setToasts] = useState<Toast[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sortByRef = useRef(sortBy);
+  const toastIdRef = useRef(0);
+  const prevItemsRef = useRef<FeedbackItem[] | null>(null);
+  // Track pending timeout handles for cleanup on unmount
+  const toastTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     sortByRef.current = sortBy;
@@ -50,13 +62,40 @@ export default function Home() {
     setVotedIds(getVotedItems());
   }, []);
 
+  // Cleanup toast timeouts on unmount
+  useEffect(() => {
+    return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      toastTimeoutsRef.current.forEach(clearTimeout);
+    };
+  }, []);
+
+  const addToast = useCallback((message: string) => {
+    const id = ++toastIdRef.current;
+    setToasts(prev => {
+      const trimmed = prev.length >= 3 ? prev.slice(1) : prev; // drop oldest if at cap
+      return [...trimmed, { id, message }];
+    });
+    // Auto-dismiss: mark as removing after 3.2s, remove from DOM after 3.6s
+    const removeTimer = setTimeout(() => {
+      setToasts(prev => prev.map(t => t.id === id ? { ...t, removing: true } : t));
+      const domTimer = setTimeout(() => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+      }, 400);
+      toastTimeoutsRef.current.push(domTimer);
+    }, 3200);
+    toastTimeoutsRef.current.push(removeTimer);
+  }, []); // stable: uses only functional state updates and refs
+
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
       const res = await fetch(`/api/feedback?sort=${sortBy}&order=desc`);
       if (!res.ok) throw new Error("fetch failed");
-      setItems(await res.json());
+      const data: FeedbackItem[] = await res.json();
+      prevItemsRef.current = data; // initialize so first poll has a baseline
+      setItems(data);
     } catch {
       setError("Could not load feedback. Make sure the server is running.");
     } finally {
@@ -70,11 +109,31 @@ export default function Home() {
       const res = await fetch(`/api/feedback?sort=${sortByRef.current}&order=desc`);
       if (!res.ok) return;
       const fresh: FeedbackItem[] = await res.json();
+
+      const prev = prevItemsRef.current;
+      if (prev !== null) { // skip on first poll if initial load hasn't finished yet
+        // Detect new items
+        const prevIds = new Set(prev.map(i => i.id));
+        for (const item of fresh) {
+          if (!prevIds.has(item.id)) {
+            addToast(`New feedback: ${item.title}`);
+          }
+        }
+        // Detect vote changes
+        const prevMap = new Map(prev.map(i => [i.id, i]));
+        for (const item of fresh) {
+          const old = prevMap.get(item.id);
+          if (old && item.votes > old.votes) {
+            addToast(`Someone voted on: ${item.title}`);
+          }
+        }
+      }
+      prevItemsRef.current = fresh;
       setItems(fresh);
     } catch {
       // silently ignore poll errors
     }
-  }, []);
+  }, [addToast]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -230,6 +289,12 @@ export default function Home() {
           onVoted={handleVoted}
         />
       )}
+
+      {/* ── Toast Notifications ── */}
+      <ToastContainer
+        toasts={toasts}
+        onDismiss={(id) => setToasts(prev => prev.filter(t => t.id !== id))}
+      />
     </div>
   );
 }
