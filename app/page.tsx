@@ -5,6 +5,7 @@ import type { FeedbackItem } from "@/lib/db";
 import Board from "./components/Board";
 import SubmitModal from "./components/SubmitModal";
 import DetailModal from "./components/DetailModal";
+import ToastContainer, { useToastState } from "./components/ToastContainer";
 
 const VOTED_KEY = "voted_items";
 const POLL_INTERVAL = 4000; // 4 seconds
@@ -42,6 +43,11 @@ export default function Home() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sortByRef = useRef(sortBy);
 
+  // Track items by id→votes map for change detection during polling
+  const itemsRef = useRef<FeedbackItem[]>([]);
+
+  const { toasts, addToast, dismissToast } = useToastState();
+
   useEffect(() => {
     sortByRef.current = sortBy;
   }, [sortBy]);
@@ -50,13 +56,20 @@ export default function Home() {
     setVotedIds(getVotedItems());
   }, []);
 
+  // Keep itemsRef in sync with items state
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
       const res = await fetch(`/api/feedback?sort=${sortBy}&order=desc`);
       if (!res.ok) throw new Error("fetch failed");
-      setItems(await res.json());
+      const data: FeedbackItem[] = await res.json();
+      setItems(data);
+      itemsRef.current = data;
     } catch {
       setError("Could not load feedback. Make sure the server is running.");
     } finally {
@@ -70,11 +83,38 @@ export default function Home() {
       const res = await fetch(`/api/feedback?sort=${sortByRef.current}&order=desc`);
       if (!res.ok) return;
       const fresh: FeedbackItem[] = await res.json();
+
+      // Detect changes relative to the current items snapshot
+      const prev = itemsRef.current;
+      if (prev.length > 0) {
+        const prevMap = new Map(prev.map((i) => [i.id, i]));
+
+        // New feedback items (ids that didn't exist before)
+        const newItems = fresh.filter((i) => !prevMap.has(i.id));
+        for (const item of newItems) {
+          addToast(`New feedback: "${item.title}"`, "new-feedback");
+        }
+
+        // Vote count increases on existing items (excluding items voted by this user
+        // in this session — those are handled immediately on click)
+        const votedLocally = getVotedItems();
+        for (const item of fresh) {
+          const old = prevMap.get(item.id);
+          if (old && item.votes > old.votes && !votedLocally.has(item.id)) {
+            const diff = item.votes - old.votes;
+            addToast(
+              `"${item.title}" received ${diff} new vote${diff > 1 ? "s" : ""}`,
+              "new-vote"
+            );
+          }
+        }
+      }
+
       setItems(fresh);
     } catch {
       // silently ignore poll errors
     }
-  }, []);
+  }, [addToast]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -237,6 +277,9 @@ export default function Home() {
           onVoted={handleVoted}
         />
       )}
+
+      {/* ── Toast Notifications ── */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }
