@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { FeedbackItem } from "@/lib/db";
 import Board from "./components/Board";
 import SubmitModal from "./components/SubmitModal";
@@ -41,6 +41,9 @@ export default function Home() {
   const [votedIds, setVotedIds] = useState<Set<number>>(new Set());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sortByRef = useRef(sortBy);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "new" | "in_progress" | "done">("all");
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     sortByRef.current = sortBy;
@@ -135,6 +138,30 @@ export default function Home() {
     in_progress: items.filter((i) => i.status === "in_progress").length,
     done: items.filter((i) => i.status === "done").length,
   };
+
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = e.target.value;
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setSearchQuery(val);
+    }, 300);
+  }
+
+  const visibleItems = useMemo(() => {
+    let result = items;
+    if (statusFilter !== "all") {
+      result = result.filter((i) => i.status === statusFilter);
+    }
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      result = result.filter(
+        (i) =>
+          i.title.toLowerCase().includes(q) ||
+          (i.description ?? "").toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [items, searchQuery, statusFilter]);
 
   return (
     <div className="app">
