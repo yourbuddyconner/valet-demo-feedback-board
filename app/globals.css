@@ -3,6 +3,11 @@
    ============================================================ */
 *, *::before, *::after { box-sizing: border-box; }
 
+*, *::before, *::after {
+  transition: background-color 0.2s ease, color 0.2s ease,
+              border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
 :root {
   --bg:          #f0f2f5;
   --surface:     #ffffff;
@@ -388,4 +393,49 @@ input,textarea,select { font-family: inherit; font-size: inherit; }
   .detail-secondary .btn { flex: 1; }
   .list-item { padding: 14px 12px; gap: 12px; }
   .vote-btn-list { width: 46px; min-height: 50px; }
+}
+
+/* ============================================================
+   Dark Mode Overrides
+   ============================================================ */
+[data-theme="dark"] {
+  --bg:          #0f1117;
+  --surface:     #1a1d2e;
+  --surface-2:   #252840;
+  --border:      #2d3154;
+  --text:        #e2e8f0;
+  --text-muted:  #8892b0;
+  --primary:     #818cf8;
+  --primary-h:   #6366f1;
+  --primary-lt:  #1e1f3b;
+  --danger:      #f87171;
+  --danger-h:    #ef4444;
+
+  --s-new-c:   #60a5fa;  --s-new-bg:   #1e2a3b;  --s-new-b:   #2d4a6b;
+  --s-ip-c:    #fbbf24;  --s-ip-bg:    #2d2010;  --s-ip-b:    #5c3d0a;
+  --s-done-c:  #34d399;  --s-done-bg:  #0d2620;  --s-done-b:  #065f46;
+
+  --sh-sm:  0 1px 3px rgba(0,0,0,.4);
+  --sh-md:  0 4px 12px rgba(0,0,0,.5);
+  --sh-lg:  0 20px 60px rgba(0,0,0,.7);
+
+  color-scheme: dark;
+}
+
+[data-theme="dark"] .form-error {
+  background: #2d1515;
+  border-color: #7f1d1d;
+  color: var(--danger);
+}
+
+[data-theme="dark"] .icon-btn.danger-hover:hover {
+  background: #3b1515;
+}
+
+/* Theme toggle button */
+.theme-toggle {
+  font-size: 1.3rem;
+  padding: 6px 8px;
+  border-radius: var(--r-md);
+  transition: background 0.15s;
 }
