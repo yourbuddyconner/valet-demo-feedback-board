@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { FeedbackItem } from "@/lib/db";
 import Board from "./components/Board";
 import SubmitModal from "./components/SubmitModal";
 import DetailModal from "./components/DetailModal";
 
 const VOTED_KEY = "voted_items";
+const POLL_INTERVAL = 4000; // 4 seconds
 
 function getVotedItems(): Set<number> {
   if (typeof window === "undefined") return new Set();
@@ -38,6 +39,12 @@ export default function Home() {
   const [showSubmit, setShowSubmit] = useState(false);
   const [selected, setSelected] = useState<FeedbackItem | null>(null);
   const [votedIds, setVotedIds] = useState<Set<number>>(new Set());
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sortByRef = useRef(sortBy);
+
+  useEffect(() => {
+    sortByRef.current = sortBy;
+  }, [sortBy]);
 
   useEffect(() => {
     setVotedIds(getVotedItems());
@@ -57,7 +64,51 @@ export default function Home() {
     }
   }, [sortBy]);
 
+  // Silent background poll — no loading spinner, no flicker
+  const pollSilent = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/feedback?sort=${sortByRef.current}&order=desc`);
+      if (!res.ok) return;
+      const fresh: FeedbackItem[] = await res.json();
+      setItems(fresh);
+    } catch {
+      // silently ignore poll errors
+    }
+  }, []);
+
   useEffect(() => { load(); }, [load]);
+
+  // Polling: start/stop based on tab visibility, clean up on unmount
+  useEffect(() => {
+    const startPolling = () => {
+      if (intervalRef.current) return;
+      intervalRef.current = setInterval(pollSilent, POLL_INTERVAL);
+    };
+
+    const stopPolling = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        pollSilent(); // immediate refresh on tab focus
+        startPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [pollSilent]);
 
   function handleUpdate(updated: FeedbackItem) {
     setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
